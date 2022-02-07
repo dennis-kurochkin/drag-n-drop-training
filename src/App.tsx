@@ -20,7 +20,9 @@ const App = () => {
 
   const handleContainerDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
+  }
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement
     const container = target.classList.contains('drag-in-column') ? target : target.closest('.drag-in-column')
 
@@ -45,6 +47,7 @@ const App = () => {
         spacing={2}
         container
         onDragOver={handleContainerDragOver}
+        onDrop={handleDrop}
       >
         {data.map((column, columnIndex) => (
           <Grid
