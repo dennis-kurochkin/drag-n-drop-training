@@ -6,16 +6,16 @@ import {cloneDeep} from "lodash";
 const Item = styled(Paper)(({ theme }) => ({
   ...theme.typography.body2,
   padding: theme.spacing(1),
-  margin: '8px 0',
+  margin: '0',
   textAlign: 'center',
   color: theme.palette.text.secondary,
 }));
 
 const App = () => {
-  const [draggingElement, setDraggingElement] = useState<{ columnIndex: number, cellIndex: number} | null>(null)
+  const [draggingElement, setDraggingElement] = useState<{ el: HTMLDivElement, columnIndex: number, cellIndex: number} | null>(null)
   const [data, setData] = useState([
-    [1, 2, 3],
-    [4, 5]
+    ['Roses are red,', 'violets are blue', 'I don\'t sleep at night', 'trapped in this bed', 'just to see you again.'],
+    ['\'cause I\'m thinking of you', 'Alone with my thoughts,', 'Know I\'d give the world']
   ])
 
   const handleContainerDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -23,21 +23,32 @@ const App = () => {
   }
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement
-    const container = target.classList.contains('drag-in-column') ? target : target.closest('.drag-in-column') as HTMLDivElement
+    const container = (e.target as HTMLDivElement).closest('.drag-in-column') as HTMLDivElement
+    const shouldPlaceUp = e.clientY - e.currentTarget.getBoundingClientRect().y <= e.currentTarget.offsetHeight / 2
 
-    if (container && container.dataset.columnIndex && draggingElement) {
+    if (draggingElement?.el === e.currentTarget) {
+      return
+    }
+
+    if (container && container.dataset.columnIndex && e.currentTarget.dataset.cellIndex && draggingElement) {
+      const elementToAdd = data[draggingElement.columnIndex][draggingElement.cellIndex]
+      const isCurrentContainer = Number(container.dataset.columnIndex) === draggingElement.columnIndex
+      const isLastElementInColumn = Number(draggingElement.cellIndex) + 1 === data[draggingElement.columnIndex].length
+      const addingStartIndex = Number(e.currentTarget.dataset.cellIndex) + (shouldPlaceUp ? 0 : 1) - (isCurrentContainer && !isLastElementInColumn ? 1 : 0)
+
       const newData = cloneDeep(data)
 
-      newData[Number(container.dataset.columnIndex)].push(data[draggingElement.columnIndex][draggingElement.cellIndex])
+      console.log({ shouldPlaceUp, addingStartIndex, isCurrentContainer, isLastElementInColumn })
+
       newData[draggingElement.columnIndex].splice(draggingElement.cellIndex, 1)
+      newData[Number(container.dataset.columnIndex)].splice(addingStartIndex === -1 ? 0 : addingStartIndex, 0, elementToAdd)
 
       setData(newData)
     }
   }
 
   const handleItemDragStart = (columnIndex: number, cellIndex: number, e: React.DragEvent<HTMLDivElement>) => {
-    setDraggingElement({columnIndex, cellIndex})
+    setDraggingElement({el: e.currentTarget, columnIndex, cellIndex})
     e.currentTarget.style.opacity = '0.5'
   }
 
@@ -51,8 +62,6 @@ const App = () => {
       <Grid
         spacing={2}
         container
-        onDragOver={handleContainerDragOver}
-        onDrop={handleDrop}
       >
         {data.map((column, columnIndex) => (
           <Grid
@@ -63,14 +72,21 @@ const App = () => {
             item
           >
             {column.map((cell, cellIndex) => (
-              <Item
+              <div
                 key={`${columnIndex}${cellIndex}`}
+                data-cell-index={cellIndex}
+                style={{ padding: '4px 0' }}
                 draggable
+                onDragOver={handleContainerDragOver}
+                onDrop={handleDrop}
                 onDragStart={(...args) => handleItemDragStart(columnIndex, cellIndex, ...args)}
                 onDragEnd={handleItemDragEnd}
               >
-                {cell}
-              </Item>
+                <Item
+                >
+                  {cell}
+                </Item>
+              </div>
             ))}
           </Grid>
         ))}
